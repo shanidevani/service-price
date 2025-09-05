@@ -67,7 +67,7 @@ def show_main_app():
     """
     Displays the main application with filters and data table.
     """
-    st.title("Filtered Data Viewer")
+    st.title("Mechanic Data Viewer")
     
     df = load_data()
     if df is None:
@@ -80,7 +80,7 @@ def show_main_app():
         # Get unique values for the "CODE DESC." dropdown
         code_desc_options = df['CODE DESC.'].unique().tolist()
         selected_code_desc = st.selectbox(
-            "Filter by CODE DESC.",
+            "Filter by Car Type",
             ["All"] + code_desc_options
         )
     
@@ -88,7 +88,7 @@ def show_main_app():
         # Get unique values for the "Serviço" dropdown
         servico_options = df['Serviço'].unique().tolist()
         selected_servico = st.selectbox(
-            "Filter by Serviço",
+            "Filter by Service",
             ["All"] + servico_options
         )
 
@@ -115,3 +115,4 @@ if st.session_state.logged_in:
     show_main_app()
 else:
     show_login_page()
+
