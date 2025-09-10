@@ -67,6 +67,7 @@ else:
     df = load_data()
 
     if not df.empty:
+        st.title(f"Welcome, {st.session_state['username']}!")
         st.header("Service Part Filter")
         st.write("Use the dropdowns below to filter the data.")
 
@@ -116,6 +117,10 @@ else:
         # --- Display the results
         st.subheader("Filtered Results")
         
+        # Before conversion, fill any NaN values in 'price' with 0
+        # Then, convert the 'price' column to an integer to remove decimals
+        filtered_df['price'] = filtered_df['price'].fillna(0).round(0).astype(int)
+
         # Display the required columns
         display_columns = ['part code', 'price', 'duracao', 'year start', 'description']
         st.dataframe(filtered_df[display_columns], use_container_width=True)
