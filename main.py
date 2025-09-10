@@ -71,7 +71,7 @@ else:
         st.write("Use the dropdowns below to filter the data.")
 
         # --- Filter Dropdowns with cascading logic
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns([1,2,1,1])
         
         # Step 1: Select Code Description
         with col1:
@@ -129,4 +129,5 @@ else:
         logout_button()
     else:
         st.info("The application could not load the data. Please check the CSV URL.")
+
 
