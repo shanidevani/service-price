@@ -67,43 +67,49 @@ else:
     df = load_data()
 
     if not df.empty:
-        # st.title(f"Welcome, {st.session_state['username']}!")
         st.header("Service Part Filter")
         st.write("Use the dropdowns below to filter the data.")
 
-        # --- Filter Dropdowns
-        # Get unique values for each filter column
-        code_desc_options = ['All'] + list(df['code desc.'].unique())
-        service_options = ['All'] + list(df['service'].unique())
-        make_options = ['All'] + list(df['make'].unique())
-        model_name_options = ['All'] + list(df['model name'].unique())
-
+        # --- Filter Dropdowns with cascading logic
         col1, col2, col3, col4 = st.columns(4)
         
+        # Step 1: Select Code Description
         with col1:
+            code_desc_options = ['All'] + sorted(list(df['code desc.'].unique()))
             selected_code_desc = st.selectbox("Select Code Description", code_desc_options)
-        
-        with col2:
-            selected_service = st.selectbox("Select Service", service_options)
-        
-        with col3:
-            selected_make = st.selectbox("Select Make", make_options)
-        
-        with col4:
-            selected_model_name = st.selectbox("Select Model Name", model_name_options)
 
-        # --- Filter the DataFrame
-        filtered_df = df.copy()
-
+        # Create a filtered dataframe based on the first selection
+        filtered_df_step1 = df.copy()
         if selected_code_desc != 'All':
-            filtered_df = filtered_df[filtered_df['code desc.'] == selected_code_desc]
+            filtered_df_step1 = filtered_df_step1[filtered_df_step1['code desc.'] == selected_code_desc]
         
+        # Step 2: Select Service (cascading from Code Description)
+        with col2:
+            service_options = ['All'] + sorted(list(filtered_df_step1['service'].unique()))
+            selected_service = st.selectbox("Select Service", service_options)
+
+        # Create a filtered dataframe based on the second selection
+        filtered_df_step2 = filtered_df_step1.copy()
         if selected_service != 'All':
-            filtered_df = filtered_df[filtered_df['service'] == selected_service]
-
+            filtered_df_step2 = filtered_df_step2[filtered_df_step2['service'] == selected_service]
+        
+        # Step 3: Select Make (cascading from Service)
+        with col3:
+            make_options = ['All'] + sorted(list(filtered_df_step2['make'].unique()))
+            selected_make = st.selectbox("Select Make", make_options)
+            
+        # Create a filtered dataframe based on the third selection
+        filtered_df_step3 = filtered_df_step2.copy()
         if selected_make != 'All':
-            filtered_df = filtered_df[filtered_df['make'] == selected_make]
+            filtered_df_step3 = filtered_df_step3[filtered_df_step3['make'] == selected_make]
 
+        # Step 4: Select Model Name (cascading from Make)
+        with col4:
+            model_name_options = ['All'] + sorted(list(filtered_df_step3['model name'].unique()))
+            selected_model_name = st.selectbox("Select Model Name", model_name_options)
+        
+        # --- Final Filter the DataFrame
+        filtered_df = filtered_df_step3.copy()
         if selected_model_name != 'All':
             filtered_df = filtered_df[filtered_df['model name'] == selected_model_name]
         
