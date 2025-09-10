@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
-import io
+import numpy as np
 
-# --- Login System Configuration ---
-# You can add up to 10 user logins here
-LOGIN_CREDENTIALS = {
+# --- Set wide page layout
+st.set_page_config(layout="wide")
+
+# --- User Authentication Configuration
+# In a real-world app, you would use a proper database or a more secure
+# method for user management. This is for demonstration purposes.
+users = {
     "ARMMACHAWASASADMIN": "Smart@123456",
     "MATOLASASADMIN": "Smart@123456",
     "MATOLARIOSASADMIN": "Smart@123456",
@@ -17,102 +21,101 @@ LOGIN_CREDENTIALS = {
     "CHEMOIOSASADMIN": "Smart@123456",
 }
 
-# --- Streamlit Page Configuration ---
-st.set_page_config(layout="wide", page_title="Data Filter App")
-
-# --- Session State Initialization ---
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-# --- Data Loading (Cached) ---
-@st.cache_data
-def load_data():
-    """
-    Loads data from the specified GitHub CSV URL.
-    This function is cached to prevent re-downloading on every rerun.
-    """
-    try:
-        # Replaced the URL with the correct raw GitHub URL
-        url = "https://raw.githubusercontent.com/shanidevani/service-price/755bea969d9894fda6e06481c039e2496ff94c0d/service%20data.csv"
-        # Added on_bad_lines='skip' to handle malformed rows
-        df = pd.read_csv(url, on_bad_lines='skip')
-        # Rename columns to match the request
-        df.columns = ['CODE', 'CODE DESC.', 'Serviço', 'GRUP', 'SHORT', 'QS COD', 'PART CODE', 'PRICE', 'DURACAO', 'Descrição']
-        return df
-    except Exception as e:
-        st.error(f"Error loading data: {e}. Please check the CSV URL and its formatting.")
-        return None
-
-# --- Main Application Logic ---
-def show_login_page():
-    """
-    Displays the login form.
-    """
-    st.title("Login to Access the Data")
-    
-    with st.form("login_form"):
+def login_form():
+    """Displays the login form and handles authentication."""
+    with st.form("Login Form"):
+        st.title("Login")
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
-        submit_button = st.form_submit_button("Login")
-        
-    if submit_button:
-        if username in LOGIN_CREDENTIALS and LOGIN_CREDENTIALS[username] == password:
-            st.session_state.logged_in = True
-            st.success("Login successful!")
-            st.rerun()
-        else:
-            st.error("Invalid username or password")
+        login_button = st.form_submit_button("Login")
 
-def show_main_app():
-    """
-    Displays the main application with filters and data table.
-    """
-    st.title("Mechanic Data Viewer")
-    
-    df = load_data()
-    if df is None:
-        return # Stop execution if data loading failed
+        if login_button:
+            if username in users and users[username] == password:
+                st.session_state['authenticated'] = True
+                st.session_state['username'] = username
+                st.rerun()  # Rerun the app to switch to the main page
+            else:
+                st.error("Invalid username or password.")
 
-    # Create two columns for the filters
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Get unique values for the "CODE DESC." dropdown
-        code_desc_options = df['CODE DESC.'].unique().tolist()
-        selected_code_desc = st.selectbox(
-            "Filter by Car Type",
-            ["All"] + code_desc_options
-        )
-    
-    with col2:
-        # Get unique values for the "Serviço" dropdown
-        servico_options = df['Serviço'].unique().tolist()
-        selected_servico = st.selectbox(
-            "Filter by Service",
-            ["All"] + servico_options
-        )
-
-    # Filter the DataFrame based on selections
-    filtered_df = df.copy()
-    if selected_code_desc != "All":
-        filtered_df = filtered_df[filtered_df['CODE DESC.'] == selected_code_desc]
-    
-    if selected_servico != "All":
-        filtered_df = filtered_df[filtered_df['Serviço'] == selected_servico]
-    
-    # Select and display the required columns
-    display_df = filtered_df[['PART CODE', 'PRICE', 'DURACAO']]
-    st.dataframe(display_df, use_container_width=True)
-    
-    # --- Logout button at the bottom ---
-    st.markdown("---")
+def logout_button():
+    """Displays the logout button."""
     if st.button("Logout"):
-        st.session_state.logged_in = False
+        st.session_state['authenticated'] = False
+        del st.session_state['username']
         st.rerun()
 
-# --- Run the appropriate page based on login status ---
-if st.session_state.logged_in:
-    show_main_app()
+# --- Main Application Logic
+if 'authenticated' not in st.session_state or not st.session_state['authenticated']:
+    login_form()
 else:
-    show_login_page()
+    # --- Data Loading (using st.cache_data for performance)
+    @st.cache_data
+    def load_data():
+        """
+        Loads the data from the raw CSV file on GitHub.
+        """
+        try:
+            # Correct raw URL for the GitHub CSV file.
+            # The URL was changed from the web page URL to the raw content URL.
+            csv_url = "https://raw.githubusercontent.com/shanidevani/service-price/main/final%20service%20data.csv"
+            df = pd.read_csv(csv_url)
+            return df
+        except Exception as e:
+            st.error(f"Error loading data: {e}. Please ensure the URL is correct and the CSV is publicly accessible.")
+            return pd.DataFrame() # Return empty DataFrame on error
 
+    df = load_data()
+
+    if not df.empty:
+        # st.title(f"Welcome, {st.session_state['username']}!")
+        st.header("Service Part Filter")
+        st.write("Use the dropdowns below to filter the data.")
+
+        # --- Filter Dropdowns
+        # Get unique values for each filter column
+        code_desc_options = ['All'] + list(df['code desc.'].unique())
+        service_options = ['All'] + list(df['service'].unique())
+        make_options = ['All'] + list(df['make'].unique())
+        model_name_options = ['All'] + list(df['model name'].unique())
+
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            selected_code_desc = st.selectbox("Select Code Description", code_desc_options)
+        
+        with col2:
+            selected_service = st.selectbox("Select Service", service_options)
+        
+        with col3:
+            selected_make = st.selectbox("Select Make", make_options)
+        
+        with col4:
+            selected_model_name = st.selectbox("Select Model Name", model_name_options)
+
+        # --- Filter the DataFrame
+        filtered_df = df.copy()
+
+        if selected_code_desc != 'All':
+            filtered_df = filtered_df[filtered_df['code desc.'] == selected_code_desc]
+        
+        if selected_service != 'All':
+            filtered_df = filtered_df[filtered_df['service'] == selected_service]
+
+        if selected_make != 'All':
+            filtered_df = filtered_df[filtered_df['make'] == selected_make]
+
+        if selected_model_name != 'All':
+            filtered_df = filtered_df[filtered_df['model name'] == selected_model_name]
+        
+        # --- Display the results
+        st.subheader("Filtered Results")
+        
+        # Display the required columns
+        display_columns = ['part code', 'price', 'duracao', 'year start', 'description']
+        st.dataframe(filtered_df[display_columns], use_container_width=True)
+
+        st.markdown("---")
+        # --- Logout button at the bottom of the page
+        logout_button()
+    else:
+        st.info("The application could not load the data. Please check the CSV URL.")
