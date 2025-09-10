@@ -67,7 +67,6 @@ else:
     df = load_data()
 
     if not df.empty:
-        st.title(f"Welcome, {st.session_state['username']}!")
         st.header("Service Part Filter")
         st.write("Use the dropdowns below to filter the data.")
 
@@ -130,3 +129,4 @@ else:
         logout_button()
     else:
         st.info("The application could not load the data. Please check the CSV URL.")
+
