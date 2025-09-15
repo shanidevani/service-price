@@ -59,6 +59,8 @@ else:
             # The URL was changed from the web page URL to the raw content URL.
             csv_url = "https://raw.githubusercontent.com/shanidevani/service-price/main/final%20service%20data.csv"
             df = pd.read_csv(csv_url)
+            print(len(df))
+            print(list(df))
             return df
         except Exception as e:
             st.error(f"Error loading data: {e}. Please ensure the URL is correct and the CSV is publicly accessible.")
@@ -66,50 +68,75 @@ else:
 
     df = load_data()
 
+    print(len(df))
+    print(list(df))
+
     if not df.empty:
+        # st.title(f"Welcome, {st.session_state['username']}!")
         st.header("Service Part Filter")
         st.write("Use the dropdowns below to filter the data.")
 
         # --- Filter Dropdowns with cascading logic
-        col1, col2, col3, col4 = st.columns([2,2,1,1])
+        tab1, tab2, tab3, tab4 = st.columns(4)
         
         # Step 1: Select Code Description
-        with col1:
-            code_desc_options = ['All'] + sorted(list(df['code desc.'].unique()))
-            selected_code_desc = st.selectbox("Select Code Description", code_desc_options)
+        with tab1:
+            make_options = ['All'] + sorted(list(df['car name'].unique()))
+            if len(make_options)==1:
+                selected_make = False
+                st.markdown("""<span style="font-weight: bold; color: red;">Make is not aplicable</span>""" , unsafe_allow_html=True)
+            else:
+                selected_make = st.selectbox("Select Make", make_options)
 
         # Create a filtered dataframe based on the first selection
         filtered_df_step1 = df.copy()
-        if selected_code_desc != 'All':
-            filtered_df_step1 = filtered_df_step1[filtered_df_step1['code desc.'] == selected_code_desc]
+
+        if selected_make != 'All' and selected_make != False:
+            filtered_df_step1 = filtered_df_step1[filtered_df_step1['car name'] == selected_make]
+        
+        with tab2:
+            model_name_options = ['All'] + sorted(list(filtered_df_step1['model name'].unique()))
+            
+            if len(model_name_options)==1:
+                selected_model_name = False
+                st.markdown("""<span style="font-weight: bold; color: red;">Model is not aplicable</span>""" , unsafe_allow_html=True)
+            else:
+                selected_model_name = st.selectbox("Select Model Name", model_name_options)
+
+        # Create a filtered dataframe based on the first selection
+        if selected_model_name != 'All' and selected_model_name != False:
+            filtered_df_step1 = filtered_df_step1[filtered_df_step1['model name'] == selected_model_name]
+        
+        with tab3:
+            all_years = sorted([int(y) for y in set(filtered_df_step1['year start'].dropna().unique()) | set(filtered_df_step1['year end'].dropna().unique())])
+            
+            if len(all_years)==1:
+                selected_year = False
+                st.markdown("""<span style="font-weight: bold; color: red;">year is not aplicable</span>""" , unsafe_allow_html=True)
+            else:
+                selected_year = st.selectbox("Select Year", ['All'] + all_years)
+
+        if selected_year != 'All' and selected_year != False:
+            filtered_df_step1 = filtered_df_step1[
+                (filtered_df_step1['year start'] <= selected_year) & 
+                (filtered_df_step1['year end'] >= selected_year)
+            ]
         
         # Step 2: Select Service (cascading from Code Description)
-        with col2:
+        with tab4:
             service_options = ['All'] + sorted(list(filtered_df_step1['service'].unique()))
-            selected_service = st.selectbox("Select Service", service_options)
+            if len(service_options)==1:
+                selected_service = False
+                st.markdown("""<span style="font-weight: bold; color: red;">year is not aplicable</span>""" , unsafe_allow_html=True)
+            else:
+                selected_service = st.selectbox("Select Service", service_options)
 
         # Create a filtered dataframe based on the second selection
-        filtered_df_step2 = filtered_df_step1.copy()
-        if selected_service != 'All':
-            filtered_df_step2 = filtered_df_step2[filtered_df_step2['service'] == selected_service]
-        
-        # Step 3: Select Make (cascading from Service)
-        with col3:
-            make_options = ['All'] + sorted(list(filtered_df_step2['make'].unique()))
-            selected_make = st.selectbox("Select Make", make_options)
-            
-        # Create a filtered dataframe based on the third selection
-        filtered_df_step3 = filtered_df_step2.copy()
-        if selected_make != 'All':
-            filtered_df_step3 = filtered_df_step3[filtered_df_step3['make'] == selected_make]
+        if selected_service != 'All' and selected_service != False:
+            filtered_df_step1 = filtered_df_step1[filtered_df_step1['service'] == selected_service]
 
-        # Step 4: Select Model Name (cascading from Make)
-        with col4:
-            model_name_options = ['All'] + sorted(list(filtered_df_step3['model name'].unique()))
-            selected_model_name = st.selectbox("Select Model Name", model_name_options)
-        
         # --- Final Filter the DataFrame
-        filtered_df = filtered_df_step3.copy()
+        filtered_df = filtered_df_step1.copy()
         if selected_model_name != 'All':
             filtered_df = filtered_df[filtered_df['model name'] == selected_model_name]
         
@@ -121,7 +148,7 @@ else:
         filtered_df['price'] = filtered_df['price'].fillna(0).round(0).astype(int)
 
         # Display the required columns
-        display_columns = ['part code', 'price', 'duracao', 'year start', 'description']
+        display_columns = ['part code', 'price', 'duracao', 'description']
         st.dataframe(filtered_df[display_columns], use_container_width=True)
 
         st.markdown("---")
@@ -129,6 +156,7 @@ else:
         logout_button()
     else:
         st.info("The application could not load the data. Please check the CSV URL.")
+
 
 
 
